@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any
 
 from pyrekordbox.utils import deobfuscate
+from sqlcipher3 import dbapi2 as sqlcipher
 
 # OneLibrary (Device Library Plus): PIONEER/rekordbox/exportLibrary.db on sticks.
 ONE_LIBRARY = (
@@ -21,12 +22,6 @@ ONE_LIBRARY = (
 
 def open_encrypted(path: Path, blob: bytes) -> Any:
     """Open an SQLCipher 4 database (default settings) with one of the keys above."""
-    try:
-        from sqlcipher3 import dbapi2 as sqlcipher
-    except ImportError as exc:  # pragma: no cover - depends on the extra
-        raise RuntimeError(
-            "reading encrypted Rekordbox databases needs the 'rekordbox' extra (sqlcipher3)"
-        ) from exc
     conn = sqlcipher.connect(str(path))
     conn.execute(f"PRAGMA key = '{deobfuscate(blob)}'")
     conn.execute("SELECT count(*) FROM sqlite_master").fetchone()  # fails if the key is wrong

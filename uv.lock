@@ -274,48 +274,37 @@ source = { editable = "." }
 dependencies = [
     { name = "mutagen" },
     { name = "psutil" },
+    { name = "pyrekordbox" },
+    { name = "serato-tools" },
+    { name = "sqlcipher3-wheels" },
 ]
 
 [package.optional-dependencies]
-all = [
-    { name = "imageio-ffmpeg" },
-    { name = "pyrekordbox" },
-    { name = "serato-tools" },
-    { name = "sqlcipher3-wheels" },
-]
 ffmpeg = [
     { name = "imageio-ffmpeg" },
-]
-rekordbox = [
-    { name = "pyrekordbox" },
-    { name = "sqlcipher3-wheels" },
-]
-serato = [
-    { name = "serato-tools" },
 ]
 
 [package.dev-dependencies]
 dev = [
-    { name = "cratelib", extra = ["all"] },
+    { name = "cratelib", extra = ["ffmpeg"] },
     { name = "pytest" },
     { name = "ruff" },
 ]
 
 [package.metadata]
 requires-dist = [
-    { name = "cratelib", extras = ["rekordbox", "serato", "ffmpeg"], marker = "extra == 'all'" },
     { name = "imageio-ffmpeg", marker = "extra == 'ffmpeg'", specifier = ">=0.5" },
     { name = "mutagen", specifier = ">=1.47" },
     { name = "psutil", specifier = ">=5.9" },
-    { name = "pyrekordbox", marker = "extra == 'rekordbox'", specifier = ">=0.4.4" },
-    { name = "serato-tools", marker = "extra == 'serato'", specifier = ">=4.0.2" },
-    { name = "sqlcipher3-wheels", marker = "extra == 'rekordbox'", specifier = ">=0.5" },
+    { name = "pyrekordbox", specifier = ">=0.4.4" },
+    { name = "serato-tools", specifier = ">=4.0.2" },
+    { name = "sqlcipher3-wheels", specifier = ">=0.5" },
 ]
-provides-extras = ["rekordbox", "serato", "ffmpeg", "all"]
+provides-extras = ["ffmpeg"]
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "cratelib", extras = ["all"] },
+    { name = "cratelib", extras = ["ffmpeg"] },
     { name = "pytest", specifier = ">=8.3" },
     { name = "ruff", specifier = ">=0.6" },
 ]

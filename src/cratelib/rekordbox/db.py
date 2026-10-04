@@ -1,9 +1,9 @@
 """Read Rekordbox 6/7's own library: ``master.db`` plus its ANLZ analysis files.
 
-pyrekordbox opens it (it is SQLCipher-encrypted with a publicly known key), so this
-needs the ``rekordbox`` extra. Tracks, cues and playlists are in the database; beat grids
-are only in the analysis files (``share/PIONEER/USBANLZ/…/ANLZ0000.DAT``, the
-``PQTZ`` tag), so point this at the whole Rekordbox folder:
+pyrekordbox opens it (it is SQLCipher-encrypted with a publicly known key). Tracks, cues
+and playlists are in the database; beat grids are only in the analysis files
+(``share/PIONEER/USBANLZ/…/ANLZ0000.DAT``, the ``PQTZ`` tag), so point this at the whole
+Rekordbox folder:
 
 * macOS: ``~/Library/Pioneer/rekordbox``
 * Windows: ``%APPDATA%\\Pioneer\\rekordbox``

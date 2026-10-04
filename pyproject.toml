@@ -14,20 +14,20 @@ dependencies = [
   "mutagen>=1.47",
   # Whether a DJ program is running; finding USB drives on macOS and Windows.
   "psutil>=5.9",
+  # Rekordbox 6/7's master.db, and OneLibrary (exportLibrary.db) on USB sticks.
+  "pyrekordbox>=0.4.4",
+  "sqlcipher3-wheels>=0.5",
+  # Serato's database V2 and crates.
+  "serato-tools>=4.0.2",
 ]
 
 [project.optional-dependencies]
-# Rekordbox 6/7's master.db, and OneLibrary (exportLibrary.db) on USB sticks.
-rekordbox = ["pyrekordbox>=0.4.4", "sqlcipher3-wheels>=0.5"]
-# Serato's database V2 and crates.
-serato = ["serato-tools>=4.0.2"]
 # An ffmpeg binary, for Rekordbox USB waveforms and MP3 conversion when none is on PATH.
 ffmpeg = ["imageio-ffmpeg>=0.5"]
-all = ["cratelib[rekordbox,serato,ffmpeg]"]
 
 [dependency-groups]
 dev = [
-  "cratelib[all]",
+  "cratelib[ffmpeg]",
   "pytest>=8.3",
   "ruff>=0.6",
 ]

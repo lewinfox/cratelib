@@ -3,19 +3,15 @@
 Read and write DJ libraries and USB sticks for **Rekordbox**, **Serato** and **Mixxx**: tracks,
 playlists, crates, hot cues, memory cues, loops and beat grids, in one format-neutral model.
 
-Split out of [cratemover](https://github.com/lewinfox/cratemover), which is now the app on top
-(command line, web UI, sync).
-
 ## Install
 
 ```sh
-uv add "cratelib[all]"          # everything
-uv add "cratelib[rekordbox]"    # + Rekordbox 6/7's master.db and OneLibrary sticks
-uv add "cratelib[serato]"       # + Serato
-uv add "cratelib[ffmpeg]"       # + an ffmpeg binary, if there isn't one on PATH
+uv add cratelib
 ```
 
-The core (Mixxx, Rekordbox XML, Rekordbox `export.pdb` sticks) needs only mutagen.
+Rekordbox USB waveforms and MP3 conversion need ffmpeg. cratelib uses the one on PATH; without
+it, waveforms are flat and nothing is converted. `uv add "cratelib[ffmpeg]"` installs a copy
+just for cratelib (via [imageio-ffmpeg](https://github.com/imageio/imageio-ffmpeg)).
 
 ## Use
 
@@ -62,14 +58,14 @@ track's `file`; `write()` and `open()` use it to store new paths.
 
 cratelib hands formats to existing libraries where one covers them:
 
-| Format | Read | Write | By |
-|---|---|---|---|
-| Rekordbox `master.db` | ✓ | edit with `open()` | [pyrekordbox](https://github.com/dylanljones/pyrekordbox) |
-| Rekordbox XML | ✓ | ✓ | own: pyrekordbox's `rbxml` mangles macOS/Linux paths and drops hot cue colours |
-| Rekordbox USB (`export.pdb`, OneLibrary, analysis files) | ✓ | ✓ | own: no Python library writes these |
-| Serato `database V2` and crates | ✓ | ✓ | [serato-tools](https://github.com/bvandrc/serato-tools) |
-| Serato cues and grids in audio files | ✓ | ✓ | own: serato-tools only covers MP3/AIFF |
-| Mixxx `mixxxdb.sqlite` | ✓ | ✓ | own: no library exists |
+| Format                                                   | Read | Write              | By                                                                             |
+| -------------------------------------------------------- | ---- | ------------------ | ------------------------------------------------------------------------------ |
+| Rekordbox `master.db`                                    | ✓    | edit with `open()` | [pyrekordbox](https://github.com/dylanljones/pyrekordbox)                      |
+| Rekordbox XML                                            | ✓    | ✓                  | own: pyrekordbox's `rbxml` mangles macOS/Linux paths and drops hot cue colours |
+| Rekordbox USB (`export.pdb`, OneLibrary, analysis files) | ✓    | ✓                  | own: no Python library writes these                                            |
+| Serato `database V2` and crates                          | ✓    | ✓                  | [serato-tools](https://github.com/bvandrc/serato-tools)                        |
+| Serato cues and grids in audio files                     | ✓    | ✓                  | own: serato-tools only covers MP3/AIFF                                         |
+| Mixxx `mixxxdb.sqlite`                                   | ✓    | ✓                  | own: no library exists                                                         |
 
 Where we keep our own code because a library has a gap, the plan is to fix the gap upstream
 and then switch.
