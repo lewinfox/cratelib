@@ -54,6 +54,12 @@ track's `file`; `write()` and `open()` use it to store new paths.
 **Finding libraries**: `cratelib.detect(path)` for a file, folder or drive;
 `cratelib.installed()` for each program's usual place on this computer.
 
+| Program   | macOS                                 | Windows                       | Linux                                                                                                                     |
+| --------- | ------------------------------------- | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| Rekordbox | `~/Library/Pioneer/rekordbox`         | `%APPDATA%\Pioneer\rekordbox` | Under Wine: `$XDG_DATA_HOME/rekordbox-wine/prefix` or `~/.wine`, then `drive_c/users/*/AppData/Roaming/Pioneer/rekordbox` |
+| Serato    | `~/Music/_Serato_`                    | `~\Music\_Serato_`            | Under Wine: `_Serato_` in the XDG music folder (`xdg-user-dir MUSIC`), with `C:/` paths                                   |
+| Mixxx     | `~/Library/Application Support/Mixxx` | `%LOCALAPPDATA%\Mixxx`        | `$XDG_DATA_HOME/mixxx` or `~/.mixxx`                                                                                      |
+
 ## Who does what
 
 cratelib hands formats to existing libraries where one covers them:

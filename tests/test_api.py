@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import sys
 from pathlib import Path
 
 import pytest
@@ -80,3 +81,49 @@ def test_select_keeps_named_playlists_and_their_tracks() -> None:
     picked = library.select(["F / One"])
     assert sorted(picked.tracks) == ["a", "b"] and picked.playlist_paths() == ["F / One"]
     assert library.select([]) is library
+
+
+def test_installed_finds_xdg_places_on_linux(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(sys, "platform", "linux")
+    home = tmp_path / "home"
+    data = tmp_path / "data"
+    monkeypatch.setenv("XDG_DATA_HOME", str(data))
+    monkeypatch.delenv("XDG_CONFIG_HOME", raising=False)
+    (home / ".config").mkdir(parents=True)
+    (home / ".config/user-dirs.dirs").write_text('XDG_MUSIC_DIR="$HOME/Musik"\n')
+    rekordbox = data / "rekordbox-wine/prefix/drive_c/users/dj/AppData/Roaming/Pioneer/rekordbox"
+    rekordbox.mkdir(parents=True)
+    (rekordbox / "master.db").write_bytes(b"")
+    (home / "Musik/_Serato_").mkdir(parents=True)
+    (home / "Musik/_Serato_/database V2").write_bytes(b"")
+    (data / "mixxx").mkdir()
+    (data / "mixxx/mixxxdb.sqlite").write_bytes(b"")
+
+    assert cratelib.installed(home) == [
+        cratelib.RekordboxDb(rekordbox / "master.db"),
+        cratelib.Serato(home / "Musik/_Serato_", "C:/"),
+        cratelib.Mixxx(data / "mixxx/mixxxdb.sqlite"),
+    ]
+
+
+def test_installed_falls_back_to_default_folders_on_linux(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(sys, "platform", "linux")
+    for var in ("XDG_DATA_HOME", "XDG_CONFIG_HOME"):
+        monkeypatch.delenv(var, raising=False)
+    rekordbox = tmp_path / ".wine/drive_c/users/me/AppData/Roaming/Pioneer/rekordbox"
+    rekordbox.mkdir(parents=True)
+    (rekordbox / "master.db").write_bytes(b"")
+    (tmp_path / "Music/_Serato_").mkdir(parents=True)
+    (tmp_path / "Music/_Serato_/database V2").write_bytes(b"")
+    (tmp_path / ".mixxx").mkdir()
+    (tmp_path / ".mixxx/mixxxdb.sqlite").write_bytes(b"")
+
+    assert cratelib.installed(tmp_path) == [
+        cratelib.RekordboxDb(rekordbox / "master.db"),
+        cratelib.Serato(tmp_path / "Music/_Serato_", "C:/"),
+        cratelib.Mixxx(tmp_path / ".mixxx/mixxxdb.sqlite"),
+    ]
