@@ -6,34 +6,53 @@ import pytest
 from conftest import FIXTURES, needs_ffmpeg
 
 from cratelib.serato import markers as m
-from cratelib.serato.binfile import Field, dump, parse
+from cratelib.serato.binfile import (
+    Field,
+    SeratoFormatError,
+    read_crate,
+    read_database,
+    write_crate,
+    write_database,
+)
 from cratelib.serato.tags import read_tags, write_tags
 
 TAGS = FIXTURES / "serato-tags"
 
 
 @pytest.mark.parametrize(
-    "name",
+    ("name", "read", "write"),
     [
-        "database_v2_test.bin",
-        "database_v2_duplicates.bin",
-        "TestCrate.crate",
-        "TestSmartCrate.scrate",
+        ("database_v2_test.bin", read_database, write_database),
+        ("database_v2_duplicates.bin", read_database, write_database),
+        ("TestCrate.crate", read_crate, write_crate),
     ],
 )
-def test_binfile_round_trips_real_files(name: str) -> None:
-    data = (FIXTURES / "serato-db" / name).read_bytes()
-    assert dump(parse(data)) == data
+def test_binfile_round_trips_real_files(name: str, read, write, tmp_path: Path) -> None:  # type: ignore[no-untyped-def]
+    source = FIXTURES / "serato-db" / name
+    target = tmp_path / name
+    write(target, read(source))
+    assert target.read_bytes() == source.read_bytes()
+    assert not list(tmp_path.glob("*cratelib-new*"))
 
 
 def test_database_fields() -> None:
-    fields = parse((FIXTURES / "serato-db" / "database_v2_test.bin").read_bytes())
+    fields = read_database(FIXTURES / "serato-db" / "database_v2_test.bin")
     assert fields[0] == Field("vrsn", "2.0/Serato Scratch LIVE Database")
     track = fields[1]
     assert track.get("pfil") == "Users/bvand/Music/DJ Tracks/Zeds Dead - In The Beginning.mp3"
     assert track.get("tbpm") == "70.00"
     assert track.get("uadd") == 1747147273
     assert track.get("bmis") is False
+
+
+def test_unknown_version_is_refused(tmp_path: Path) -> None:
+    path = tmp_path / "future.crate"
+    write_crate(path, [Field("vrsn", "1.0/Serato ScratchLive Crate")])
+    path.write_bytes(
+        path.read_bytes().replace("1.0".encode("utf-16-be"), "9.9".encode("utf-16-be"))
+    )
+    with pytest.raises(SeratoFormatError):
+        read_crate(path)
 
 
 @pytest.mark.parametrize(

@@ -29,7 +29,16 @@ from ..colours import (
 from ..keys import KeyNotation, format_key, parse_key
 from ..model import Cue, CueRole, Library, Playlist, TempoMarker, Track, normalise_path
 from ..offsets import serato_offset_ms
-from .binfile import CRATE_VERSION, DATABASE_VERSION, Field, SeratoFormatError, dump, parse
+from .binfile import (
+    CRATE_VERSION,
+    DATABASE_VERSION,
+    Field,
+    SeratoFormatError,
+    read_crate,
+    read_database,
+    write_crate,
+    write_database,
+)
 from .markers import GridMarker, Markers2, SeratoCue, SeratoLoop
 from .tags import SUPPORTED, read_tags, write_tags
 
@@ -194,7 +203,7 @@ def read_serato(
 ) -> Library:
     serato_dir = find_serato_dir(path)
     library = Library(source=f"Serato library at {serato_dir}")
-    fields = parse((serato_dir / DATABASE_FILE).read_bytes())
+    fields = read_database(serato_dir / DATABASE_FILE)
     by_path: dict[str, str] = {}
     for index, entry in enumerate(fields):
         if entry.tag != "otrk":
@@ -214,7 +223,7 @@ def read_serato(
         names = crate_file.stem.split("%%")
         track_ids = []
         try:
-            crate = parse(crate_file.read_bytes())
+            crate = read_crate(crate_file)
         except SeratoFormatError as exc:
             library.warnings.append(f"Skipped crate {crate_file.name}: {exc}")
             continue
@@ -477,7 +486,7 @@ def write_serato(
     (serato_dir / CRATE_DIR).mkdir(parents=True, exist_ok=True)
 
     if options.base_database:
-        database = parse(options.base_database.read_bytes())
+        database = read_database(options.base_database)
     else:
         database = [Field("vrsn", DATABASE_VERSION)]
     existing = {
@@ -495,7 +504,7 @@ def write_serato(
             database.append(entry)
             existing[key] = entry
     db_path = serato_dir / DATABASE_FILE
-    db_path.write_bytes(dump(database))
+    write_database(db_path, database)
     result.files.append(db_path)
 
     for parents, playlist in library.playlists.walk():
@@ -511,7 +520,7 @@ def write_serato(
                 pfil = to_serato_path(track.location, options.volume_root)
                 crate.append(Field("otrk", [Field("ptrk", pfil)]))
         crate_path = serato_dir / CRATE_DIR / _crate_filename(names)
-        crate_path.write_bytes(dump(crate))
+        write_crate(crate_path, crate)
         result.files.append(crate_path)
 
     if options.write_file_tags:
