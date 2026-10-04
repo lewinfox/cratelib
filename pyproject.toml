@@ -1,0 +1,50 @@
+[project]
+name = "cratelib"
+version = "0.1.0"
+description = "Read and write DJ libraries and USB sticks for Rekordbox, Serato and Mixxx."
+readme = "README.md"
+authors = [
+    { name = "Lewin Appleton-Fox", email = "lewin.a.f@gmail.com" }
+]
+requires-python = ">=3.12"
+# MIT, except the vendored src/cratelib/mixxx_schema.xml (Mixxx, GPL-2.0-or-later).
+license = "MIT AND GPL-2.0-or-later"
+license-files = ["LICENSE", "LICENSES/*"]
+dependencies = [
+  "mutagen>=1.47",
+  # Finding USB drives on macOS and Windows.
+  "psutil>=5.9; sys_platform == 'darwin' or sys_platform == 'win32'",
+]
+
+[project.optional-dependencies]
+# Rekordbox 6/7's master.db, and OneLibrary (exportLibrary.db) on USB sticks.
+rekordbox = ["pyrekordbox>=0.4.4", "sqlcipher3-wheels>=0.5"]
+# Serato's database V2 and crates.
+serato = ["serato-tools>=4.0.2"]
+# An ffmpeg binary, for Rekordbox USB waveforms and MP3 conversion when none is on PATH.
+ffmpeg = ["imageio-ffmpeg>=0.5"]
+all = ["cratelib[rekordbox,serato,ffmpeg]"]
+
+[dependency-groups]
+dev = [
+  "cratelib[all]",
+  "pytest>=8.3",
+  "ruff>=0.6",
+]
+
+[build-system]
+requires = ["uv_build>=0.12.2,<0.13.0"]
+build-backend = "uv_build"
+
+[tool.ruff]
+line-length = 100
+extend-exclude = ["tests/oracles"]
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF"]
+ignore = ["E501"]  # the formatter handles line length
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = ["-ra"]
