@@ -1,30 +1,22 @@
-"""The public SQLCipher keys of Rekordbox databases, stored obfuscated as pyrekordbox does.
+"""The public SQLCipher key of OneLibrary databases on USB sticks.
 
-From dylanljones/pyrekordbox (MIT, Copyright (c) 2022-2025 Dylan Jones):
-``utils.deobfuscate`` and the ``BLOB`` constants of ``masterdb`` and ``devicelib_plus``.
+pyrekordbox opens ``master.db`` itself; its 0.4.4 release doesn't know OneLibrary's
+key yet, so that one is kept here in the same obfuscated form, decoded with
+pyrekordbox's ``deobfuscate``. The key is from pyrekordbox's ``devicelib_plus``
+(MIT, Copyright (c) 2022-2025 Dylan Jones).
 """
 
 from __future__ import annotations
 
-import base64
-import zlib
 from pathlib import Path
 from typing import Any
 
-_BLOB_KEY = b"657f48f84c437cc1"
-# Rekordbox 6/7's master.db.
-MASTER_DB = b"PN_Pq^*N>(JYe*u^8;Yg76HuZ<mR13S?=>)b9;DpoTXV(6ItkU`}8*m6tx_I{Solh_N#dfe{v="
+from pyrekordbox.utils import deobfuscate
+
 # OneLibrary (Device Library Plus): PIONEER/rekordbox/exportLibrary.db on sticks.
 ONE_LIBRARY = (
     b"PN_1dH8$oLJY)16j_RvM6qphWw`476>;C1cWmI#se(PG`j}~xAjlufj?`#0i{;=glh(SkW)y0>n?YEiD`l%t("
 )
-
-
-def deobfuscate(blob: bytes) -> str:
-    data = base64.b85decode(blob)
-    return zlib.decompress(
-        bytes(b ^ _BLOB_KEY[i % len(_BLOB_KEY)] for i, b in enumerate(data))
-    ).decode()
 
 
 def open_encrypted(path: Path, blob: bytes) -> Any:

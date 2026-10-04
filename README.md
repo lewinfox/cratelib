@@ -62,12 +62,15 @@ cratelib hands formats to existing libraries where one covers them:
 
 | Format | Read | Write | By |
 |---|---|---|---|
-| Rekordbox `master.db` | ✓ | edit with `open()` | [pyrekordbox](https://github.com/dylanljones/pyrekordbox) (writes); own SQL (reads) |
-| Rekordbox XML | ✓ | ✓ | own |
+| Rekordbox `master.db` | ✓ | edit with `open()` | [pyrekordbox](https://github.com/dylanljones/pyrekordbox) |
+| Rekordbox XML | ✓ | ✓ | own: pyrekordbox's `rbxml` mangles macOS/Linux paths and drops hot cue colours |
 | Rekordbox USB (`export.pdb`, OneLibrary, analysis files) | ✓ | ✓ | own: no Python library writes these |
-| Serato `database V2` and crates | ✓ | ✓ | own |
-| Serato cues and grids in audio files | ✓ | ✓ | own: [serato-tools](https://github.com/bvandrc/serato-tools) only covers MP3/AIFF |
-| Mixxx `mixxxdb.sqlite` | ✓ | ✓ | own |
+| Serato `database V2` and crates | ✓ | ✓ | [serato-tools](https://github.com/bvandrc/serato-tools) |
+| Serato cues and grids in audio files | ✓ | ✓ | own: serato-tools only covers MP3/AIFF |
+| Mixxx `mixxxdb.sqlite` | ✓ | ✓ | own: no library exists |
+
+Where we keep our own code because a library has a gap, the plan is to fix the gap upstream
+and then switch.
 
 ## Development
 

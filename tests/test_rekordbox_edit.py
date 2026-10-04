@@ -130,3 +130,16 @@ def test_save_refuses_while_rekordbox_runs(
 def test_write_refuses_rekordbox_db(rekordbox_dir: Path) -> None:
     with pytest.raises(ValueError, match="open"):
         cratelib.write(cratelib.Library("empty"), cratelib.RekordboxDb(rekordbox_dir))
+
+
+def test_read_sees_changes_still_in_the_write_ahead_log(rekordbox_dir: Path) -> None:
+    rb = cratelib.open(cratelib.RekordboxDb(rekordbox_dir))
+    try:
+        rb.set_playlist(["Fresh"], [])
+        rb.save(backup=False)
+        # The editor's connection is still open, so the change is only in master.db-wal.
+        assert (rekordbox_dir / "master.db-wal").stat().st_size > 0
+        library = cratelib.read(cratelib.RekordboxDb(rekordbox_dir), file_tags=False)
+        assert "Fresh" in library.playlist_paths()
+    finally:
+        rb.close()
