@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import os
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 from .detect import detect_libraries
@@ -84,9 +84,43 @@ def detect(path: Path) -> list[Source]:
     return [_source(found) for found in detect_libraries(Path(path))]
 
 
+def _xdg(var: str, default: Path) -> Path:
+    """An XDG base folder: ``$var`` if set to an absolute path, else ``default``."""
+    value = os.environ.get(var, "")
+    return Path(value) if os.path.isabs(value) else default
+
+
+def _music_dir(home: Path) -> Path:
+    """The user's music folder, from xdg-user-dirs' ``user-dirs.dirs``, else ``~/Music``."""
+    try:
+        lines = (_xdg("XDG_CONFIG_HOME", home / ".config") / "user-dirs.dirs").read_text()
+    except OSError:
+        lines = ""
+    for line in lines.splitlines():
+        name, _, value = line.partition("=")
+        if name.strip() == "XDG_MUSIC_DIR":
+            value = value.strip().strip('"')
+            if value.startswith("$HOME"):
+                return home / value.removeprefix("$HOME").lstrip("/")
+            if os.path.isabs(value):
+                return Path(value)
+    return home / "Music"
+
+
+def _wine_rekordbox(prefix: Path) -> list[Path]:
+    """Rekordbox's folder for each user of a Wine prefix (rekordbox's %APPDATA%)."""
+    return sorted(prefix.glob("drive_c/users/*/AppData/Roaming/Pioneer/rekordbox"))
+
+
 def installed(home: Path | None = None) -> list[Source]:
-    """The libraries in each program's usual place on this computer."""
+    """The libraries in each program's usual place on this computer.
+
+    On Linux, Rekordbox and Serato run under Wine: Rekordbox in a prefix at
+    ``$XDG_DATA_HOME/rekordbox-wine/prefix`` (or ``~/.wine``), Serato with its
+    ``_Serato_`` in the XDG music folder, storing ``C:/`` paths.
+    """
     home = home or Path.home()
+    wine = False
     if sys.platform == "darwin":
         places = [
             home / "Library/Pioneer/rekordbox",
@@ -99,9 +133,17 @@ def installed(home: Path | None = None) -> list[Source]:
         local = Path(os.environ.get("LOCALAPPDATA", home / "AppData/Local"))
         places = [appdata / "Pioneer/rekordbox", home / "Music/_Serato_", local / "Mixxx"]
     else:
-        places = [home / ".mixxx", home / ".local/share/mixxx", home / "Music/_Serato_"]
+        data = _xdg("XDG_DATA_HOME", home / ".local/share")
+        places = [
+            *_wine_rekordbox(data / "rekordbox-wine/prefix"),
+            *_wine_rekordbox(home / ".wine"),
+            _music_dir(home) / "_Serato_",
+            data / "mixxx",
+            home / ".mixxx",
+        ]
+        wine = True
     found: list[Source] = []
     for place in places:
         if place.is_dir():
             found += detect(place)
-    return found
+    return [replace(s, volume_root="C:/") if wine and isinstance(s, Serato) else s for s in found]
