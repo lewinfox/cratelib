@@ -297,9 +297,12 @@ def write(
             else:
                 base = options.base
             volume_root = target.volume_root or "/"
-            if volume_root != "/" and options.copy_missing:
-                _refuse_second_library(Path(volume_root), target)
-                _place_on_drive(library, Path(volume_root), result.warnings)
+            drive = Path(volume_root)
+            # A library on a separate drive (a USB stick) gets copies of tracks that aren't
+            # on it. Not the computer's own drive, nor a Windows drive seen from elsewhere.
+            if options.copy_missing and drive.is_dir() and drive.anchor != str(drive):
+                _refuse_second_library(drive, target)
+                _place_on_drive(library, drive, result.warnings)
                 files_by_location.update({t.location: t.file for t in library.tracks.values()})
             se = write_serato(
                 library,
@@ -373,8 +376,10 @@ def write(
 def open(source: Source, paths: PathMap | None = None) -> Editor:
     """Open a library to change it in place: find and add tracks, set playlists.
 
-    Use it as a context manager; nothing is written until :meth:`Editor.save`.
-    Only Rekordbox's own library (``master.db``) can be opened so far.
+    Use it as a context manager; nothing is written until :meth:`Editor.save`,
+    which refuses while the library's program is running. Rekordbox's own library,
+    Serato and Mixxx can be opened; XML files and USB sticks are written whole with
+    :func:`write`.
     """
     paths = paths or PathMap()
     match source:
@@ -382,4 +387,12 @@ def open(source: Source, paths: PathMap | None = None) -> Editor:
             from .rekordbox.edit import RekordboxEditor
 
             return RekordboxEditor(Path(source.path), paths)
-    raise NotImplementedError(f"editing {source.format} libraries in place isn't supported yet")
+        case Serato():
+            from .serato.edit import SeratoEditor
+
+            return SeratoEditor(Path(source.path), source.volume_root, paths)
+        case Mixxx():
+            from .mixxx_edit import MixxxEditor
+
+            return MixxxEditor(Path(source.path), paths)
+    raise ValueError(f"{source.format} libraries are written whole with write(), not opened")

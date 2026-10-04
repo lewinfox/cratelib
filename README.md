@@ -45,9 +45,11 @@ with cratelib.open(cratelib.RekordboxDb(rekordbox_dir), paths) as rb:
     rb.save()  # refuses while rekordbox is running; backs up first
 ```
 
-Nothing is written until `save()`. Setting a playlist to the contents it already has changes
-nothing, so a sync job can run it every time. Only Rekordbox's own library (`master.db`) can
-be opened so far.
+Nothing is written until `save()`, which refuses while the library's program is running.
+Setting a playlist to the contents it already has changes nothing, so a sync job can run it
+every time. Rekordbox's own library, Serato and Mixxx can be opened. Serato playlists are
+crates (nested with `%%`); Mixxx has no folders, so `["SoundCloud", "ukg"]` is the playlist
+`SoundCloud / ukg`.
 
 **Paths.** A `PathMap` says how a DJ program sees this machine's files. Keys are local
 folders, values are the same folders as the program stores them. `read()` uses it to set each

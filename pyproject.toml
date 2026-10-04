@@ -12,8 +12,8 @@ license = "MIT AND GPL-2.0-or-later"
 license-files = ["LICENSE", "LICENSES/*"]
 dependencies = [
   "mutagen>=1.47",
-  # Finding USB drives on macOS and Windows.
-  "psutil>=5.9; sys_platform == 'darwin' or sys_platform == 'win32'",
+  # Whether a DJ program is running; finding USB drives on macOS and Windows.
+  "psutil>=5.9",
 ]
 
 [project.optional-dependencies]

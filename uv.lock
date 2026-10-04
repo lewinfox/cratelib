@@ -273,7 +273,7 @@ version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "mutagen" },
-    { name = "psutil", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
+    { name = "psutil" },
 ]
 
 [package.optional-dependencies]
@@ -306,7 +306,7 @@ requires-dist = [
     { name = "cratelib", extras = ["rekordbox", "serato", "ffmpeg"], marker = "extra == 'all'" },
     { name = "imageio-ffmpeg", marker = "extra == 'ffmpeg'", specifier = ">=0.5" },
     { name = "mutagen", specifier = ">=1.47" },
-    { name = "psutil", marker = "sys_platform == 'darwin' or sys_platform == 'win32'", specifier = ">=5.9" },
+    { name = "psutil", specifier = ">=5.9" },
     { name = "pyrekordbox", marker = "extra == 'rekordbox'", specifier = ">=0.4.4" },
     { name = "serato-tools", marker = "extra == 'serato'", specifier = ">=4.0.2" },
     { name = "sqlcipher3-wheels", marker = "extra == 'rekordbox'", specifier = ">=0.5" },
