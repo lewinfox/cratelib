@@ -107,13 +107,13 @@ def _cue(row: Any) -> Cue | None:
     start, end = row.InMsec, row.OutMsec
     if start is None or start < 0:
         return None
-    loop = end is not None and end > start
+    end = float(end) if end is not None and end > start else None
     index = int(row.ColorTableIndex or 0)
     slot = _HOT_CUE_KIND.get(int(row.Kind or 0)) if row.Kind else None
     return Cue(
-        CueRole.LOOP if loop else CueRole.CUE,
+        CueRole.LOOP if end is not None else CueRole.CUE,
         float(start),
-        float(end) if loop else None,
+        end,
         slot=slot,
         name=row.Comment or "",
         colour=REKORDBOX_CUE_COLOURS[index - 1] if slot is not None and 1 <= index <= 16 else None,

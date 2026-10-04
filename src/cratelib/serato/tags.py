@@ -167,27 +167,30 @@ def write_tags(path: Path, markers: Markers2, grid: list[GridMarker]) -> None:
     assert audio is not None
     if audio.tags is None:
         audio.add_tags()
+    tags = audio.tags
+    assert tags is not None
     if suffix == ".flac":
-        audio.tags["SERATO_MARKERS_V2"] = encode_markers2_b64(markers).decode()
+        tags["SERATO_MARKERS_V2"] = encode_markers2_b64(markers).decode()
         if grid:
-            audio.tags["SERATO_BEATGRID"] = encode_beatgrid_b64(grid).decode()
-        elif "SERATO_BEATGRID" in audio.tags:
-            del audio.tags["SERATO_BEATGRID"]
+            tags["SERATO_BEATGRID"] = encode_beatgrid_b64(grid).decode()
+        elif "SERATO_BEATGRID" in tags:
+            del tags["SERATO_BEATGRID"]
     elif suffix in (".m4a", ".mp4"):
-        audio.tags[_MP4_MARKERS2] = [MP4FreeForm(encode_markers2_b64(markers))]
-        audio.tags[_MP4_MARKERS1] = [MP4FreeForm(encode_markers1_mp4(markers))]
+        tags[_MP4_MARKERS2] = [MP4FreeForm(encode_markers2_b64(markers))]
+        tags[_MP4_MARKERS1] = [MP4FreeForm(encode_markers1_mp4(markers))]
         if grid:
-            audio.tags[_MP4_BEATGRID] = [MP4FreeForm(encode_beatgrid_b64(grid))]
-        elif _MP4_BEATGRID in audio.tags:
-            del audio.tags[_MP4_BEATGRID]
+            tags[_MP4_BEATGRID] = [MP4FreeForm(encode_beatgrid_b64(grid))]
+        elif _MP4_BEATGRID in tags:
+            del tags[_MP4_BEATGRID]
     elif suffix == ".ogg":
         payload = dump_markers2_payload(markers)
-        audio.tags["SERATO_MARKERS2"] = _b64encode_serato(payload, chop_padding=True).decode()
+        tags["SERATO_MARKERS2"] = _b64encode_serato(payload, chop_padding=True).decode()
     audio.save()
 
 
 def _write_id3(path: Path, markers: Markers2, grid: list[GridMarker]) -> None:
     suffix = path.suffix.lower()
+    audio = None
     if suffix == ".mp3":
         try:
             tags = ID3(path)
@@ -199,6 +202,7 @@ def _write_id3(path: Path, markers: Markers2, grid: list[GridMarker]) -> None:
         if audio.tags is None:
             audio.add_tags()
         tags = audio.tags
+        assert tags is not None
 
     def geob(name: str, data: bytes) -> None:
         tags.setall(
@@ -212,7 +216,7 @@ def _write_id3(path: Path, markers: Markers2, grid: list[GridMarker]) -> None:
         geob("Serato BeatGrid", encode_beatgrid(grid))
     else:
         tags.delall("GEOB:Serato BeatGrid")
-    if suffix == ".mp3":
+    if audio is None:
         # Serato writes ID3v2.4; keep v2.3 files as they are.
         tags.save(path, v2_version=4 if tags.version >= (2, 4, 0) else 3)
     else:

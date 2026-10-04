@@ -13,6 +13,7 @@ Without ffmpeg, :func:`placeholder` gives flat waveforms of the right shape.
 from __future__ import annotations
 
 import math
+import operator
 import shutil
 import struct
 import subprocess
@@ -104,7 +105,7 @@ def measure(path: Path) -> Measured:
         m.peak.append(levels[0])
         m.white.append(levels[1])
         m.bands.append((levels[2], levels[3], levels[4]))
-        m.sumsq.append(math.fsum(map(float.__mul__, full, full)))
+        m.sumsq.append(math.fsum(map(operator.mul, full, full)))
         m.samples.append(b - a)
     return m
 

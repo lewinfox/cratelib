@@ -8,6 +8,7 @@ cratelib reads and writes DJ libraries and USB sticks for Rekordbox, Serato and 
 uv sync                      # dev env, with the ffmpeg extra
 uv run pytest                # ~140 tests, ~30 s; round trips need ffmpeg on PATH
 uv run ruff check && uv run ruff format
+uv run ty check              # typecheck src/
 ```
 
 ## Rules

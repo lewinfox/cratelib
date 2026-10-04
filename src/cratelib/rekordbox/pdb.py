@@ -41,7 +41,7 @@ FILE_TYPES = {
 FILE_TYPE_ALAC = 6
 
 
-def _u16(b: bytes, o: int) -> int:
+def _u16(b: bytes | bytearray, o: int) -> int:
     return struct.unpack_from("<H", b, o)[0]
 
 

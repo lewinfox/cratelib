@@ -30,6 +30,7 @@ dev = [
   "cratelib[ffmpeg]",
   "pytest>=8.3",
   "ruff>=0.6",
+  "ty>=0.0.84",
 ]
 
 [build-system]
@@ -44,6 +45,9 @@ target-version = "py312"
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF"]
 ignore = ["E501"]  # the formatter handles line length
+
+[tool.ty.src]
+include = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
