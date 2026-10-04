@@ -86,7 +86,7 @@ def test_add_track_and_find_it_again(library: tuple[str, cratelib.Source], music
 def test_set_playlist_round_trips_through_read(
     library: tuple[str, cratelib.Source], music: Path
 ) -> None:
-    kind, source = library
+    _, source = library
     open_ = _opener(source, music)
     with open_() as lib:
         a, b, c = (lib.add_track(music / n) for n in ("a.mp3", "b.mp3", "c.mp3"))
