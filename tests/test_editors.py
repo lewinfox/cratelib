@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import shutil
+import sqlite3
 import subprocess
 from collections.abc import Callable
 from pathlib import Path
@@ -161,3 +162,37 @@ def test_xml_and_usb_cant_be_opened(tmp_path: Path) -> None:
     for source in (cratelib.RekordboxXml(tmp_path / "a.xml"), cratelib.RekordboxUsb(tmp_path)):
         with pytest.raises(ValueError, match="write"):
             cratelib.open(source)
+
+
+@pytest.mark.parametrize("keep_library_row", [True, False])
+def test_mixxx_brings_back_a_removed_track(
+    tmp_path: Path, music: Path, monkeypatch: pytest.MonkeyPatch, keep_library_row: bool
+) -> None:
+    # Mixxx keeps a removed track's rows, and stores each location only once.
+    monkeypatch.setattr(mixxx_edit, "mixxx_running", lambda: False)
+    source = cratelib.Mixxx(tmp_path / "mixxx")
+    cratelib.write(cratelib.Library("empty"), source)
+    open_ = _opener(source, music)
+    with open_() as lib:
+        old = lib.add_track(music / "a.mp3")
+        lib.save(backup=False)
+    db = sqlite3.connect(tmp_path / "mixxx" / "mixxxdb.sqlite")
+    with db:
+        if keep_library_row:  # removed from the library: marked, cues kept
+            db.execute("UPDATE library SET mixxx_deleted = 1, bpm = 128")
+        else:  # only the location is left
+            db.execute("DELETE FROM library")
+        db.execute("UPDATE track_locations SET fs_deleted = 1")
+    with open_() as lib:
+        assert lib.track_at(music / "a.mp3") is None
+        track = lib.add_track(music / "a.mp3")
+        assert (track.title, track.location) == ("Alpha", "C:/users/dj/Music/a.mp3")
+        assert (track.id == old.id) == keep_library_row
+        lib.set_playlist(["p"], [track])
+        lib.save(backup=False)
+    with open_() as lib:
+        assert lib.playlist(["p"]) == [lib.track_at(music / "a.mp3")]
+    assert db.execute("SELECT COUNT(*), MAX(fs_deleted) FROM track_locations").fetchone() == (1, 0)
+    if keep_library_row:
+        assert db.execute("SELECT bpm FROM library").fetchone() == (128,)
+    db.close()

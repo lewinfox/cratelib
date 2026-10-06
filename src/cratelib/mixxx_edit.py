@@ -57,16 +57,32 @@ class MixxxEditor(Editor):
         file = Path(file)
         if self.track_at(file) is not None:
             raise ValueError(f"{file} is already in the library")
+        location = self.paths.to_app(file)
+        # Mixxx keeps a removed track's rows, and a location can only be stored once.
+        old = self.db.execute(
+            """SELECT tl.id, l.id FROM track_locations tl LEFT JOIN library l
+               ON l.location = tl.id WHERE tl.location = ? ORDER BY l.id DESC""",
+            (location,),
+        ).fetchone()
+        if old is not None and old[1] is not None:
+            return self._restore(old[1], file, fields)
         tags = {**basic_tags(file), **fields}
         info = probe(file)
-        location = self.paths.to_app(file)
-        name = path_name(location)
-        directory = location[: -len(name) - 1] or "/"
-        loc_id = self.db.execute(
-            """INSERT INTO track_locations (location, filename, directory, filesize,
-                   fs_deleted, needs_verification) VALUES (?, ?, ?, ?, 0, 0)""",
-            (location, name, directory, info.file_size if info else file.stat().st_size),
-        ).lastrowid
+        size = info.file_size if info else file.stat().st_size
+        if old is not None:
+            loc_id = old[0]
+            self.db.execute(
+                "UPDATE track_locations SET filesize = ?, fs_deleted = 0 WHERE id = ?",
+                (size, loc_id),
+            )
+        else:
+            name = path_name(location)
+            directory = location[: -len(name) - 1] or "/"
+            loc_id = self.db.execute(
+                """INSERT INTO track_locations (location, filename, directory, filesize,
+                       fs_deleted, needs_verification) VALUES (?, ?, ?, ?, 0, 0)""",
+                (location, name, directory, size),
+            ).lastrowid
         now = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%S.000Z")
         values = {
             "location": loc_id,
@@ -93,6 +109,35 @@ class MixxxEditor(Editor):
             location=location,
             title=str(values["title"]),
             artist=str(values["artist"]),
+            file=file,
+        )
+
+    def _restore(self, track_id: int, file: Path, fields: dict[str, str]) -> Track:
+        """Bring back a track removed from Mixxx's library, keeping its cues and
+        analysis. ``fields`` replace what Mixxx has."""
+        columns = {
+            k: v for k, v in fields.items() if k in ("title", "artist", "album", "genre", "year")
+        }
+        sets = "".join(f", {k} = ?" for k in columns)
+        self.db.execute(
+            f"UPDATE library SET mixxx_deleted = 0{sets} WHERE id = ?",
+            (*columns.values(), track_id),
+        )
+        self.db.execute(
+            """UPDATE track_locations SET fs_deleted = 0
+               WHERE id = (SELECT location FROM library WHERE id = ?)""",
+            (track_id,),
+        )
+        location, title, artist = self.db.execute(
+            """SELECT tl.location, l.title, l.artist FROM library l
+               JOIN track_locations tl ON tl.id = l.location WHERE l.id = ?""",
+            (track_id,),
+        ).fetchone()
+        return Track(
+            id=f"mixxx:{track_id}",
+            location=location,
+            title=title or "",
+            artist=artist or "",
             file=file,
         )
 
