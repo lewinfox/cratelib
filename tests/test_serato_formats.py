@@ -146,3 +146,33 @@ def test_write_then_read_tags(tmp_path: Path, suffix: str) -> None:
     if suffix != ".ogg":  # no known Ogg beat grid tag
         assert [g.position_s for g in tags.grid] == [0.25, 1.25]
         assert tags.grid[-1].bpm == pytest.approx(121.5)
+
+
+@needs_ffmpeg
+def test_mp3_tag_writes_store_an_audio_hash(tmp_path: Path) -> None:
+    from fakelib import make_audio
+    from mutagen.id3 import ID3
+
+    from cratelib.audiofile import audio_sha256
+
+    path = make_audio(tmp_path / "t.mp3", seconds=2)
+    before = audio_sha256(path)
+    write_tags(path, m.Markers2(cues=[m.SeratoCue(0, 250, 0xCC0000, "Drop")]), [])
+    assert audio_sha256(path) == before  # retagging leaves the hash alone
+    assert ID3(path).getall("TXXX:AUDIO_SHA256")[0].text == [before]
+
+
+@needs_ffmpeg
+def test_mp3s_converted_for_a_stick_store_an_audio_hash(tmp_path: Path) -> None:
+    from fakelib import make_audio
+    from mutagen.id3 import ID3
+
+    from cratelib.audiofile import audio_sha256
+    from cratelib.model import Track
+    from cratelib.rekordbox.usb import _transcode
+
+    src = make_audio(tmp_path / "t.ogg", seconds=2)
+    rel, converted = _transcode(src, Track(id="1", location=str(src)), tmp_path / "stick")
+    dest = tmp_path / "stick" / rel.lstrip("/")
+    assert converted
+    assert ID3(dest).getall("TXXX:AUDIO_SHA256")[0].text == [audio_sha256(dest)]

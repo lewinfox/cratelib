@@ -33,6 +33,7 @@ from pathlib import Path, PurePosixPath
 
 import mutagen
 
+from ..audiofile import stamp_audio_hash
 from ..colours import REKORDBOX_TRACK_COLOURS, rekordbox_track_colour
 from ..keys import KeyNotation, format_key, parse_key
 from ..model import Library, Playlist, Track
@@ -245,6 +246,7 @@ def _transcode(local: Path, track: Track, root: Path) -> tuple[str, bool]:
         check=True,
         capture_output=True,
     )  # fmt: skip
+    stamp_audio_hash(partial)
     os.replace(partial, dest)
     return "/" + rel.as_posix(), True
 

@@ -24,6 +24,7 @@ from mutagen.mp4 import MP4, MP4FreeForm
 from mutagen.oggvorbis import OggVorbis
 from mutagen.wave import WAVE
 
+from ..audiofile import add_audio_hash
 from .binfile import SeratoFormatError
 from .markers import (
     V1_CUES,
@@ -217,6 +218,7 @@ def _write_id3(path: Path, markers: Markers2, grid: list[GridMarker]) -> None:
     else:
         tags.delall("GEOB:Serato BeatGrid")
     if audio is None:
+        add_audio_hash(tags, path)
         # Serato writes ID3v2.4; keep v2.3 files as they are.
         tags.save(path, v2_version=4 if tags.version >= (2, 4, 0) else 3)
     else:
