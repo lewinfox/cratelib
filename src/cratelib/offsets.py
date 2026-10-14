@@ -100,6 +100,64 @@ def mp3_offset_ms(path: Path, decoder: Mp3Decoder) -> float:
     return _MP3_OFFSETS[decoder].get(mp3_header_case(path), 0)
 
 
+# MP3 decoders add this many samples of delay in front of the audio (the
+# synthesis filterbank's), on top of the encoder's. Gapless decoders trim both.
+MP3_DECODER_DELAY = 529
+
+# Encoders whose LAME-style tag carries the encoder delay, as FFmpeg and symphonia
+# read it (mutagen only parses LAME's own).
+_DELAY_ENCODERS = (b"LAME", b"Lavf", b"Lavc")
+
+
+def _samples_per_frame(frame: MPEGFrame) -> int:
+    if frame.layer == 1:
+        return 384
+    if frame.layer == 3 and frame.version != 1:
+        return 576
+    return 1152
+
+
+def _encoder_delay(f: BinaryIO, frame: MPEGFrame) -> int | None:
+    """The encoder delay in a LAME-style tag after the Xing/Info header, or None."""
+    f.seek(frame.frame_offset + XingHeader.get_offset(frame))
+    data = f.read(256)
+    if data[:4] not in (b"Xing", b"Info") or len(data) < 8:
+        return None
+    flags = struct.unpack(">I", data[4:8])[0]
+    pos = (
+        8 + 4 * bool(flags & 1) + 4 * bool(flags & 2) + 100 * bool(flags & 4) + 4 * bool(flags & 8)
+    )
+    # Encoder string (9), revision and lowpass (2), peak (4), radio and audiophile
+    # gain (4), flags and ABR (2), then 12 bits of delay and 12 of padding.
+    tag = data[pos : pos + 24]
+    if len(tag) < 24 or not tag.startswith(_DELAY_ENCODERS):
+        return None
+    return (tag[21] << 4) | (tag[22] >> 4)
+
+
+def mp3_gapless_offset_ms(path: Path) -> float:
+    """Milliseconds to subtract from a reference (Rekordbox) position to get the same
+    audio's position from a gapless MP3 decoder: one that drops the Xing/Info frame
+    and, when the file has a LAME, Lavf or Lavc tag, trims its encoder delay plus the
+    decoder's own 529 samples (FFmpeg's default; symphonia).
+
+    Rekordbox trims nothing, and counts the Info frame only for case D (a LAME tag with
+    a music CRC; see :func:`serato_offset_ms`). This fits the CoreAudio column of
+    ``_MP3_OFFSETS`` (CoreAudio is gapless) to within a millisecond for cases C and D,
+    with LAME's usual 576-sample delay. symphonia also ignores a LAME tag whose own
+    CRC is wrong; that isn't checked here.
+    """
+    with open(path, "rb") as f:
+        frame = _first_frame(f)
+        delay = _encoder_delay(f, frame)
+    samples = 0
+    if mp3_header_case(path) is Mp3HeaderCase.LAME:
+        samples += _samples_per_frame(frame)
+    if delay is not None:
+        samples += delay + MP3_DECODER_DELAY
+    return samples * 1000.0 / frame.sample_rate
+
+
 # --- MP4 -------------------------------------------------------------------------
 
 DEFAULT_AAC_PRIMING_SAMPLES = 2112  # iTunes encoder default

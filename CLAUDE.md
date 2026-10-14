@@ -37,7 +37,7 @@ uv run ty check              # typecheck src/
 | `serato/library.py`, `serato/edit.py`                                   | Serato read/write and edit                                                                    |
 | `serato/markers.py`, `serato/tags.py`                                   | Serato cues and grids inside audio files (own code)                                           |
 | `mixxx.py`, `mixxx_edit.py`                                             | Mixxx read/write and edit                                                                     |
-| `offsets.py`                                                            | Decoder offsets: Mixxx and some MP3s put audio a few ms off Rekordbox's timeline              |
+| `offsets.py`                                                            | Decoder offsets: Mixxx, Serato and gapless decoders put some audio a few ms off Rekordbox's timeline |
 | `layout.py`, `devices.py`, `detect.py`                                  | Where files go on sticks; finding drives and libraries                                        |
 | `processes.py`                                                          | Is Mixxx / Serato running (psutil)                                                            |
 | `tests/fixtures/`                                                       | Real files from the DJ programs; sources and licences in its README                           |
