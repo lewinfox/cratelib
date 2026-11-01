@@ -197,24 +197,49 @@ def _place_on_drive(library: Library, root: Path, warnings: list[str]) -> None:
         warnings.append(f"Copied {copied} track(s) onto {root}.")
 
 
+def _has_library(target: Source) -> bool:
+    out = Path(target.path)
+    match target:
+        case RekordboxUsb():
+            return any(
+                (out / d / "rekordbox" / name).is_file()
+                for d in ("PIONEER", ".PIONEER")
+                for name in ("export.pdb", "exportLibrary.db")
+            )
+        case Serato():
+            return (out / "database V2").is_file() or (out / "_Serato_" / "database V2").is_file()
+        case Mixxx():
+            return (out if out.suffix == ".sqlite" else out / "mixxxdb.sqlite").is_file()
+        case RekordboxXml():
+            return (out if out.suffix.lower() == ".xml" else out / "rekordbox.xml").is_file()
+    return False
+
+
 def write(
     library: Library,
     target: Source,
     options: WriteOptions | None = None,
     paths: PathMap | None = None,
     *,
+    merge: bool = False,
     progress: Progress = _quiet,
 ) -> WriteResult:
     """Write a whole library to ``target``.
 
     A new library is created if there isn't one there. An existing one is updated
     in place: its previous files are kept next to it as ``*.cratelib-<time>``.
+    Without ``merge`` it then holds what ``library`` has (a USB stick's other
+    playlists go); with it, ``library`` is added to what's there
+    (:meth:`Library.merged`), which is read first, cues and grids included.
     Tracks whose ``file`` is known get their location from ``paths`` (how the
     target's program sees this machine); the rest keep the location they have.
     ``library`` itself is not changed. To edit Rekordbox's own library, use
     :func:`open`.
     """
     paths = paths or PathMap()
+    if merge and _has_library(target):
+        progress("Reading what's there already")
+        library = read(target, paths, progress=progress).merged(library)
     library = copy.deepcopy(library)
     for track in library.tracks.values():
         if track.file is not None:

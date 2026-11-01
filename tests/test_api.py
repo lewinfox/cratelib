@@ -127,3 +127,50 @@ def test_installed_falls_back_to_default_folders_on_linux(
         cratelib.Serato(tmp_path / "Music/_Serato_", "C:/"),
         cratelib.Mixxx(tmp_path / ".mixxx/mixxxdb.sqlite"),
     ]
+
+
+def test_merged_adds_tracks_once_and_replaces_playlists_by_name(tmp_path: Path) -> None:
+    a = tmp_path / "a.mp3"
+    a.write_bytes(b"12345")
+    base = cratelib.Library("stick")
+    base.add_track(cratelib.Track("1", "/stick/Contents/a.mp3", title="A", file_size=5))
+    base.add_track(cratelib.Track("2", "/stick/Contents/c.mp3", title="C"))
+    base.playlists.children.append(
+        cratelib.Playlist.folder("Sets", [cratelib.Playlist("Friday", ["1"])])
+    )
+    base.playlists.children.append(cratelib.Playlist("Old", ["2"]))
+
+    new = cratelib.Library("earshot")
+    new.add_track(cratelib.Track("1", str(a), title="A", file=a))  # the same file as base's 1
+    new.add_track(cratelib.Track("2", "/home/b.mp3", title="B", file_size=9))  # id clashes
+    new.playlists.children.append(
+        cratelib.Playlist.folder(
+            "Sets", [cratelib.Playlist("Friday", ["2", "1"]), cratelib.Playlist("Sat", ["2"])]
+        )
+    )
+
+    out = base.merged(new)
+    assert sorted(t.title for t in out.tracks.values()) == ["A", "B", "C"]
+    b_id = next(t.id for t in out.tracks.values() if t.title == "B")
+    assert b_id != "2"
+    sets, old = out.playlists.children
+    assert [p.name for p in sets.children] == ["Friday", "Sat"]
+    assert sets.children[0].track_ids == [b_id, "1"]
+    assert old.track_ids == ["2"]
+    assert [p.name for p in base.playlists.children[0].children] == ["Friday"], "base unchanged"
+    assert base.playlists.children[0].children[0].track_ids == ["1"]
+
+
+def test_write_with_merge_keeps_whats_there(tmp_path: Path) -> None:
+    xml = tmp_path / "rb.xml"
+    first = cratelib.Library("one")
+    first.add_track(cratelib.Track("1", "/m/a.mp3", title="A"))
+    first.playlists.children.append(cratelib.Playlist("P1", ["1"]))
+    cratelib.write(first, cratelib.RekordboxXml(xml))
+    second = cratelib.Library("two")
+    second.add_track(cratelib.Track("9", "/m/b.mp3", title="B"))
+    second.playlists.children.append(cratelib.Playlist("P2", ["9"]))
+    cratelib.write(second, cratelib.RekordboxXml(xml), merge=True)
+    back = cratelib.read(cratelib.RekordboxXml(xml))
+    assert sorted(p.name for p in back.playlists.children) == ["P1", "P2"]
+    assert sorted(t.title for t in back.tracks.values()) == ["A", "B"]

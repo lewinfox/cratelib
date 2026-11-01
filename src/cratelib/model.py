@@ -8,8 +8,9 @@ positions on the way in and out (see :mod:`cratelib.offsets`).
 
 from __future__ import annotations
 
+import copy
 from collections.abc import Iterator
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import date
 from enum import StrEnum
 from pathlib import Path, PurePosixPath, PureWindowsPath
@@ -160,6 +161,23 @@ class Playlist:
     def count(self) -> int:
         return sum(1 for _ in self.walk())
 
+    def graft(self, node: Playlist) -> None:
+        """Put ``node`` into this folder: a folder joins the folder of the same name
+        (made if there's none); a playlist replaces the one of the same name."""
+        if node.is_folder:
+            same = next((c for c in self.children if c.is_folder and c.name == node.name), None)
+            if same is None:
+                same = Playlist.folder(node.name)
+                self.children.append(same)
+            for child in node.children:
+                same.graft(child)
+            return
+        for i, c in enumerate(self.children):
+            if not c.is_folder and c.name == node.name:
+                self.children[i] = node
+                return
+        self.children.append(node)
+
 
 @dataclass
 class Library:
@@ -203,6 +221,46 @@ class Library:
             playlists=root,
             warnings=list(self.warnings),
         )
+
+    def merged(self, other: Library) -> Library:
+        """A copy of this library with ``other``'s tracks and playlists added (a
+        playlist of the same name, in the same folders, is replaced). A track this
+        library has already (the same file name and size) isn't added twice."""
+        out = copy.deepcopy(self)
+
+        def size(t: Track) -> int:
+            if t.file_size:
+                return t.file_size
+            try:
+                return t.file.stat().st_size if t.file else 0
+            except OSError:
+                return 0
+
+        have = {(t.filename.lower(), size(t)): t.id for t in out.tracks.values()}
+        ids: dict[str, str] = {}
+        for t in other.tracks.values():
+            same = have.get((t.filename.lower(), size(t)))
+            if same is not None:
+                ids[t.id] = same
+                continue
+            new_id = t.id
+            while new_id in out.tracks:
+                new_id = f"+{new_id}"
+            ids[t.id] = new_id
+            out.add_track(replace(copy.deepcopy(t), id=new_id))
+
+        def renumber(p: Playlist) -> Playlist:
+            return Playlist(
+                p.name,
+                None if p.track_ids is None else [ids[i] for i in p.track_ids if i in ids],
+                [renumber(c) for c in p.children],
+                p.is_crate,
+            )
+
+        for node in other.playlists.children:
+            out.playlists.graft(renumber(node))
+        out.warnings += other.warnings
+        return out
 
     def summary(self) -> dict[str, int]:
         tracks = self.tracks.values()
