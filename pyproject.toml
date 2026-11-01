@@ -1,6 +1,6 @@
 [project]
 name = "cratelib"
-version = "0.1.0"
+version = "0.2.0"
 description = "Read and write DJ libraries and USB sticks for Rekordbox, Serato and Mixxx."
 readme = "README.md"
 authors = [
