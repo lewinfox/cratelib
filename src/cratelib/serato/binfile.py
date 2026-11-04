@@ -87,7 +87,6 @@ def read_crate(path: Path) -> list[Field]:
 
 def _save(file: SeratoBinFile, fields: list[Field], path: Path) -> None:
     file.entries = _entries(fields)
-    file._dump()  # DatabaseV2.save() writes the bytes from the last parse or edit
     file.save(str(path))
 
 
