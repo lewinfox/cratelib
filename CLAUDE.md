@@ -49,7 +49,7 @@ uv run ty check              # typecheck src/
 - **pyrekordbox logs "OS linux not supported!"** on import. Harmless.
 - **pyrekordbox's running check** looks for a process named exactly `rekordbox` (with `.exe` stripped), which catches rekordbox under Wine/Docker too.
 - **Serato `volume_root`** is what Serato's stored paths are relative to: `/` on macOS/Linux, `C:/` on Windows _and under Wine_, or a stick's mount point. Getting it wrong drops the drive letter on the round trip.
-- **serato-tools workarounds** in `serato/binfile.py`: `DatabaseV2` refuses a file that doesn't exist (we subclass to skip the check), and `DatabaseV2.save()` writes stale bytes unless `_dump()` runs first. Also, its `get_full_path` is broken on macOS/Linux (hard-codes `"\\"` instead of `os.sep`), so don't use it; turn stored paths into local ones with `from_serato_path` + `PathMap`.
+- **serato-tools workaround** in `serato/binfile.py`: `DatabaseV2` refuses a file that doesn't exist (we subclass to skip the check). Don't use its `get_full_path`: it resolves from one global drive, not `volume_root`; turn stored paths into local ones with `from_serato_path` + `PathMap`.
 - **Mixxx has no playlist folders**: nested paths become names like `SoundCloud / ukg`, in both `write()` and the editor.
 
 ## Licence

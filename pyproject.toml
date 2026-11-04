@@ -18,7 +18,7 @@ dependencies = [
   "pyrekordbox>=0.4.4",
   "sqlcipher3-wheels>=0.5",
   # Serato's database V2 and crates.
-  "serato-tools>=4.0.2",
+  "serato-tools==5.2.0",
 ]
 
 [project.optional-dependencies]
